@@ -8,6 +8,7 @@ import os
 import threading
 import json
 from os import environ
+from queue import Queue
 
 bot_token = environ.get("TOKEN", "6791074208:AAF5wiKiAtGx0FPgQbCjGW52WgdRbPjFngg")
 api_hash = environ.get("HASH", "84328889c4abb393ea32a1943a9648ec")
@@ -35,6 +36,9 @@ def save_channel_id(channel_id):
         file.write(str(channel_id))
 
 new_channel_id = load_channel_id()
+
+# Queue to manage messages
+message_queue = Queue()
 
 # download status
 def downstatus(statusfile, message):
@@ -127,7 +131,7 @@ def save(client: pyrogram.client.Client, message: pyrogram.types.messages_and_me
                     bot.send_message(message.chat.id, f"**String Session is not Set**", reply_to_message_id=message.id)
                     return
 
-                handle_private(message, chatid, msgid)
+                message_queue.put((message, chatid, msgid))
 
             # bot
             elif "https://t.me/b/" in message.text:
@@ -137,7 +141,7 @@ def save(client: pyrogram.client.Client, message: pyrogram.types.messages_and_me
                     bot.send_message(message.chat.id, f"**String Session is not Set**", reply_to_message_id=message.id)
                     return
                 try:
-                    handle_private(message, username, msgid)
+                    message_queue.put((message, username, msgid))
                 except Exception as e:
                     bot.send_message(message.chat.id, f"**Error** : __{e}__", reply_to_message_id=message.id)
 
@@ -158,12 +162,26 @@ def save(client: pyrogram.client.Client, message: pyrogram.types.messages_and_me
                         bot.send_message(message.chat.id, f"**String Session is not Set**", reply_to_message_id=message.id)
                         return
                     try:
-                        handle_private(message, username, msgid)
+                        message_queue.put((message, username, msgid))
                     except Exception as e:
                         bot.send_message(message.chat.id, f"**Error** : __{e}__", reply_to_message_id=message.id)
 
             # wait time
             time.sleep(1)
+
+# Process the message queue
+def process_queue():
+    while True:
+        message, chatid, msgid = message_queue.get()
+        try:
+            handle_private(message, chatid, msgid)
+        except FloodWait as e:
+            time.sleep(e.x)
+            message_queue.put((message, chatid, msgid))
+        except RPCError as e:
+            bot.send_message(message.chat.id, f"**RPC Error** : __{e}__", reply_to_message_id=message.id)
+        finally:
+            message_queue.task_done()
 
 # handle private
 def handle_private(message: pyrogram.types.messages_and_media.message.Message, chatid: int, msgid: int):
@@ -320,6 +338,10 @@ https://t.me/c/xxxx/101 - 120
 
 **__note that space in between doesn't matter__**
 """
+
+# Start processing the queue in a separate thread
+queue_thread = threading.Thread(target=process_queue, daemon=True)
+queue_thread.start()
 
 # infinite polling
 bot.run()
