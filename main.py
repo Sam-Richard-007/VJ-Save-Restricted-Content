@@ -298,6 +298,6 @@ USAGE = """**FOR PUBLIC CHATS**
 `https://t.me/+/link` - `https://t.me/joinchat/link`
 """
 
-DEST_CHANNEL_ID = -1001234567890  # Replace with your channel's ID
+DEST_CHANNEL_ID = -1002168376712  # Replace with your channel's ID
 
 bot.run()
