@@ -1,6 +1,6 @@
 import pyrogram
 from pyrogram import Client, filters
-from pyrogram.errors import UserAlreadyParticipant, InviteHashExpired, UsernameNotOccupied
+from pyrogram.errors import UserAlreadyParticipant, InviteHashExpired, UsernameNotOccupied, FloodWait
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import time
@@ -9,12 +9,12 @@ import threading
 import json
 from os import environ
 
-bot_token = environ.get("TOKEN", "6791074208:AAF5wiKiAtGx0FPgQbCjGW52WgdRbPjFngg")
-api_hash = environ.get("HASH", "84328889c4abb393ea32a1943a9648ec")
-api_id = int(environ.get("ID", "25914518"))
+bot_token = environ.get("TOKEN", "YOUR_BOT_TOKEN")
+api_hash = environ.get("HASH", "YOUR_API_HASH")
+api_id = int(environ.get("ID", "YOUR_API_ID"))
 bot = Client("mybot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
-ss = environ.get("STRING", "BQB9n4DQRxBDwPHDH4knrS1kdslx8h83a_ywix6pem8saJLrVekogsR0VsIZseR5ePiPnrNa8bwPLs5GPFNqvSNapiBbYt-Psd3S_gemqub0OWNN9xxXAFAMfPd8nw1czBDce-zcJGSaJM47p1guNt5PBUY-Yaj1FRPzP5AwjFLD8_MZ2H2ZUorNZrC7AUMq6NE4lke8InMQnMpgws2JLpx1_x5XBPqKe9Oco740nJXsA3k1kJrkoqhiDnsr9zq9bxVHWpJRZgOqRhrVv0m6nh3SvODOB_xaM_5Wy2ZPcUWNt8q86ojpRIw62Rj-cvYLgp64yDIcMQK7CO3MwfLUdsNgAAAAAZNijZIA")
+ss = environ.get("STRING", "YOUR_STRING_SESSION")
 if ss is not None:
     acc = Client("myacc", api_id=api_id, api_hash=api_hash, session_string=ss)
     acc.start()
@@ -161,68 +161,81 @@ def save(client: pyrogram.client.Client, message: pyrogram.types.messages_and_me
 
 # handle private
 def handle_private(message: pyrogram.types.messages_and_media.message.Message, chatid: int, msgid: int, forward_to_channel=False):
-    msg: pyrogram.types.messages_and_media.message.Message = acc.get_messages(chatid, msgid)
-    msg_type = get_message_type(msg)
+    try:
+        msg: pyrogram.types.messages_and_media.message.Message = acc.get_messages(chatid, msgid)
+        msg_type = get_message_type(msg)
 
-    if "Text" == msg_type:
-        bot.send_message(message.chat.id, msg.text, entities=msg.entities, reply_to_message_id=message.id)
-        return
+        if "Text" == msg_type:
+            bot.send_message(message.chat.id, msg.text, entities=msg.entities, reply_to_message_id=message.id)
+            return
 
-    smsg = bot.send_message(message.chat.id, '__Downloading__', reply_to_message_id=message.id)
-    dosta = threading.Thread(target=lambda: downstatus(f'{message.id}downstatus.txt', smsg), daemon=True)
-    dosta.start()
-    file = acc.download_media(msg, progress=progress, progress_args=[message, "down"])
-    os.remove(f'{message.id}downstatus.txt')
+        smsg = bot.send_message(message.chat.id, '__Downloading__', reply_to_message_id=message.id)
+        dosta = threading.Thread(target=lambda: downstatus(f'{message.id}downstatus.txt', smsg), daemon=True)
+        dosta.start()
+        file = acc.download_media(msg, progress=progress, progress_args=[message, "down"])
+        os.remove(f'{message.id}downstatus.txt')
 
-    upsta = threading.Thread(target=lambda: upstatus(f'{message.id}upstatus.txt', smsg), daemon=True)
-    upsta.start()
+        upsta = threading.Thread(target=lambda: upstatus(f'{message.id}upstatus.txt', smsg), daemon=True)
+        upsta.start()
 
-    caption = msg.caption if msg.caption else ""
-    if "Document" == msg_type:
-        if forward_to_channel:
-            bot.send_document(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_document(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        caption = msg.caption if msg.caption else ""
+        if "Document" == msg_type:
+            if forward_to_channel:
+                bot.send_document(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_document(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    elif "Video" == msg_type:
-        if forward_to_channel:
-            bot.send_video(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_video(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        elif "Video" == msg_type:
+            if forward_to_channel:
+                bot.send_video(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_video(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    elif "Animation" == msg_type:
-        if forward_to_channel:
-            bot.send_animation(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_animation(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        elif "Animation" == msg_type:
+            if forward_to_channel:
+                bot.send_animation(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_animation(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    elif "Sticker" == msg_type:
-        if forward_to_channel:
-            bot.send_sticker(DEST_CHANNEL_ID, file, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_sticker(message.chat.id, file, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        elif "Sticker" == msg_type:
+            if forward_to_channel:
+                bot.send_sticker(DEST_CHANNEL_ID, file, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_sticker(message.chat.id, file, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    elif "Voice" == msg_type:
-        if forward_to_channel:
-            bot.send_voice(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_voice(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        elif "Voice" == msg_type:
+            if forward_to_channel:
+                bot.send_voice(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_voice(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    elif "Audio" == msg_type:
-        if forward_to_channel:
-            bot.send_audio(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_audio(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        elif "Audio" == msg_type:
+            if forward_to_channel:
+                bot.send_audio(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_audio(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    elif "Photo" == msg_type:
-        if forward_to_channel:
-            bot.send_photo(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
-        else:
-            bot.send_photo(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
+        elif "Photo" == msg_type:
+            if forward_to_channel:
+                bot.send_photo(DEST_CHANNEL_ID, file, caption=caption, progress=progress, progress_args=[message, "up"])
+            else:
+                bot.send_photo(message.chat.id, file, caption=caption, reply_to_message_id=message.id, progress=progress, progress_args=[message, "up"])
 
-    os.remove(f'{message.id}upstatus.txt')
-    os.remove(file)
-    bot.delete_messages(message.chat.id, smsg.id)
+        try:
+            os.remove(f'{message.id}upstatus.txt')
+        except FileNotFoundError:
+            pass
+        os.remove(file)
+        bot.delete_messages(message.chat.id, smsg.id)
+    except FloodWait as e:
+        wait_time = e.x
+        bot.send_message(message.chat.id, f"Flood wait error. Waiting for {wait_time} seconds.")
+        time.sleep(wait_time)
+        handle_private(message, chatid, msgid, forward_to_channel)
+    except FileNotFoundError as e:
+        bot.send_message(message.chat.id, f"File not found error: {e}")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"An unexpected error occurred: {e}")
 
 # get message type
 def get_message_type(msg: pyrogram.types.messages_and_media.message.Message) -> str:
@@ -284,6 +297,6 @@ USAGE = """**FOR PUBLIC CHATS**
 `https://t.me/+/link` - `https://t.me/joinchat/link`
 """
 
-DEST_CHANNEL_ID = -1002168376712  # Replace with your channel's ID
+DEST_CHANNEL_ID = -1001234567890  # Replace with your channel's ID
 
 bot.run()
