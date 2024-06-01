@@ -14,25 +14,27 @@ api_hash = environ.get("HASH", "84328889c4abb393ea32a1943a9648ec")
 api_id = int(environ.get("ID", "25914518"))
 bot = Client("mybot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
-ss = environ.get("STRING", "BQB9n4DQRxBDwPHDH4knrS1kdslx8h83a_ywix6pem8saJLrVekogsR0VsIZseR5ePiPnrNa8bwPLs5GPFNqvSNapiBbYt-Psd3S_gemqub0OWNN9xxXAFAMfPd8nw1czBDce-zcJGSaJM47p1guNt5PBUY-Yaj1FRPzP5AwjFLD8_MZ2H2ZUorNZrC7AUMq6NE4lke8InMQnMpgws2JLpx1_x5XBPqKe9Oco740nJXsA3k1kJrkoqhiDnsr9zq9bxVHWpJRZgOqRhrVv0m6nh3SvODOB_xaM_5Wy2ZPcUWNt8q86ojpRIw62Rj-cvYLgp64yDIcMQK7CO3MwfLUdsNgAAAAAZNijZIA")
-
+ss = environ.get("STRING", "BQGLbJYAihPH61mkIZ3iYuJwgDXWsE15D2Ooja3eMUiNd6BriLWuIEX2lEEJdNK6zZ4Zlp_MJ-O6xCdkURiY2f00nBUG-c9yKozZmu_Cfqc-KM3xA1Y8OHZyA176E6aPJg9ld_hnpkV7wPxGVgxBKaUvGiiCjUm6OiUCD0z06tHSPEBNq5BXGqwgYHrFmJwpOPTCqu9Oi_1zr9GK5ocDhf5X3mj0iJaWKa3vAI9jmPrDfHruSpYe76bGHCSlDbvFzm8hNQ8k2pYIyA_1l9RGAoMeGKhufVWdSgCica5qHHYFgkxX4W_y6imZoJNemPh7WH0Kjj37vjkXhwYAAhIXCjz9U-prMgAAAAGTYo2SAA")
 if ss is not None:
     acc = Client("myacc", api_id=api_id, api_hash=api_hash, session_string=ss)
     acc.start()
 else:
     acc = None
 
-# new channel ID
-new_channel_id = environ.get("NEW_CHANNEL_ID", "-1002168376712")
+# Load channel ID from file or environment variable
+def load_channel_id():
+    try:
+        with open("channel_id.txt", "r") as file:
+            return int(file.read().strip())
+    except:
+        return int(environ.get("NEW_CHANNEL_ID", "0"))
 
-# Validate new_channel_id format
-try:
-    new_channel_id = int(new_channel_id)
-    if new_channel_id >= 0:
-        raise ValueError("Channel ID should start with -100 for channels.")
-except ValueError as ve:
-    print(f"Invalid NEW_CHANNEL_ID: {ve}")
-    raise
+# Save channel ID to file
+def save_channel_id(channel_id):
+    with open("channel_id.txt", "w") as file:
+        file.write(str(channel_id))
+
+new_channel_id = load_channel_id()
 
 # download status
 def downstatus(statusfile, message):
@@ -72,6 +74,17 @@ def progress(current, total, message, type):
 def send_start(client: pyrogram.client.Client, message: pyrogram.types.messages_and_media.message.Message):
     bot.send_message(message.chat.id, f"**__👋 Hi** **{message.from_user.mention}**, **I am Save Restricted Bot, I can send you restricted content by its post link__**\n\n{USAGE}",
                      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🌐 Update Channel", url="https://t.me/VJ_Botz")]]), reply_to_message_id=message.id)
+
+# Set channel ID command
+@bot.on_message(filters.command(["setchannel"]) & filters.forwarded)
+def set_channel(client: pyrogram.client.Client, message: pyrogram.types.messages_and_media.message.Message):
+    global new_channel_id
+    if message.forward_from_chat:
+        new_channel_id = message.forward_from_chat.id
+        save_channel_id(new_channel_id)
+        bot.send_message(message.chat.id, f"**Channel ID set to:** `{new_channel_id}`", reply_to_message_id=message.id)
+    else:
+        bot.send_message(message.chat.id, "**Please forward a message from the target channel to set it.**", reply_to_message_id=message.id)
 
 @bot.on_message(filters.text)
 def save(client: pyrogram.client.Client, message: pyrogram.types.messages_and_media.message.Message):
@@ -115,7 +128,7 @@ def save(client: pyrogram.client.Client, message: pyrogram.types.messages_and_me
                     return
 
                 handle_private(message, chatid, msgid)
-            
+
             # bot
             elif "https://t.me/b/" in message.text:
                 username = datas[4]
@@ -203,10 +216,10 @@ def handle_private(message: pyrogram.types.messages_and_media.message.Message, c
             os.remove(thumb)
 
     elif "Animation" == msg_type:
-        bot.send_animation(new_channel_id, file)
+        bot.send_animation(new_channel_id, file, caption=msg.caption, caption_entities=msg.caption_entities, progress=progress, progress_args=[message, "up"])
 
     elif "Sticker" == msg_type:
-        bot.send_sticker(new_channel_id, file)
+        bot.send_sticker(new_channel_id, file, progress=progress, progress_args=[message, "up"])
 
     elif "Voice" == msg_type:
         bot.send_voice(new_channel_id, file, caption=msg.caption, caption_entities=msg.caption_entities, progress=progress, progress_args=[message, "up"])
