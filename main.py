@@ -17,12 +17,22 @@ bot = Client("mybot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 ss = environ.get("STRING", "BQB9n4DQRxBDwPHDH4knrS1kdslx8h83a_ywix6pem8saJLrVekogsR0VsIZseR5ePiPnrNa8bwPLs5GPFNqvSNapiBbYt-Psd3S_gemqub0OWNN9xxXAFAMfPd8nw1czBDce-zcJGSaJM47p1guNt5PBUY-Yaj1FRPzP5AwjFLD8_MZ2H2ZUorNZrC7AUMq6NE4lke8InMQnMpgws2JLpx1_x5XBPqKe9Oco740nJXsA3k1kJrkoqhiDnsr9zq9bxVHWpJRZgOqRhrVv0m6nh3SvODOB_xaM_5Wy2ZPcUWNt8q86ojpRIw62Rj-cvYLgp64yDIcMQK7CO3MwfLUdsNgAAAAAZNijZIA")
 
 if ss is not None:
-	acc = Client("myacc" ,api_id=api_id, api_hash=api_hash, session_string=ss)
-	acc.start()
-else: acc = None
+    acc = Client("myacc", api_id=api_id, api_hash=api_hash, session_string=ss)
+    acc.start()
+else:
+    acc = None
 
 # new channel ID
-new_channel_id = int(environ.get("NEW_CHANNEL_ID", "-1002168376712"))
+new_channel_id = environ.get("NEW_CHANNEL_ID", "-1002168376712")
+
+# Validate new_channel_id format
+try:
+    new_channel_id = int(new_channel_id)
+    if new_channel_id >= 0:
+        raise ValueError("Channel ID should start with -100 for channels.")
+except ValueError as ve:
+    print(f"Invalid NEW_CHANNEL_ID: {ve}")
+    raise
 
 # download status
 def downstatus(statusfile, message):
@@ -281,6 +291,7 @@ then send post/s link__**
 **FOR BOT CHATS**
 
 **__send link with** '/b/', **bot's username and message id, you might want to install some unofficial client to get the id like below__**
+
 
 https://t.me/b/botusername/4321
 
